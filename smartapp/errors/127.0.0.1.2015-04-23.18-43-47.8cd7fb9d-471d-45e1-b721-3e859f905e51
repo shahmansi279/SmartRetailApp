@@ -1,0 +1,677 @@
+(dp1
+S'output'
+p2
+S"<type 'exceptions.SyntaxError'> Set: no tables selected"
+p3
+sS'layer'
+p4
+S'C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\applications\\smartapp\\controllers/default.py'
+p5
+sS'code'
+p6
+S'# -*- coding: utf-8 -*-\n# this file is released under public domain and you can use without limitations\n\n#########################################################################\n## This is a sample controller\n## - index is the default action of any application\n## - user is required for authentication and authorization\n## - download is for downloading files uploaded in the db (does streaming)\n## - api is an example of Hypermedia API support and access control\n#########################################################################\nimport gluon.contrib.simplejson as json\n\ndef register():\n\n    uemail=request.vars.uemail\n    password=request.vars.password\n    phone=request.vars.phone\n    address=request.vars.address\n    zipcode=request.vars.zipcode\n    code =412\n    message="error"\n    if uemail:\n        if password :\n            if phone :\n                if address :\n                    if zipcode :\n                        user_id=db.users.insert(uemail=uemail,password=password,phone=phone,address=address,zipcode=zipcode)\n                        if user_id:\n                                 message="success"\n                                 code=200\n\n    response.headers[\'Content-Type\']=\'application/json\'\n\n    response.status=int(code)\n    return json.dumps(dict(message=message))\n\ndef login():\n    import cgi\n    response.flash="Welcome"\n    id=request.vars.uemail\n    pwd=request.vars.password\n    rows=db(db.users.uemail==id).select(db.users.password)\n\n    if rows :\n        message="invalid username"\n        code=401\n        if(str(rows[0].password)==pwd) :\n            message="success"\n            code=200\n        else :\n            message="invalid  password"\n            code=401\n\n    else :\n       message="invalid username "\n       code=401\n\n    response.headers[\'Content-Type\']=\'application/json\'\n    response.status=int(code)\n    return json.dumps(dict(message=message))\n\n\ndef authenticate(uemail, password):\n\n    users= db((db.users.uemail== uemail)&(db.users.password==password)).select()\n    if users:\n        return True\n    else:\n        return False\n\ndef getuserrole(uemail):\n    \n  users= db((db.users.uemail== uemail)).select(db.users.role)\n  if users:\n        return users[0].role\n  \n\ndef addplace():\n    \n    uemail=request.vars.uemail\n    password=request.vars.password\n\n\n    place_desc=request.vars.place_desc\n    place_name=request.vars.place_name\n    place_addr=request.vars.place_addr\n    place_lat=""\n    place_long=""\n\n    valid_usr=authenticate(uemail,password)\n    if valid_usr:\n        usr_role=getuserrole(uemail)\n    \n        if(usr_role=="admin"):\n\n        #insert into gimbal server and get place-id , place_lat, place_long\n          \n\n            import urllib, urllib2, base64\n\n            data={"name":place_name}\n            data_json = json.dumps(data)\n            headers = {\n             \'Authorization\': \'Token token=f50ccc1aab3314434ae32dada87312cb\',\n             \'Content-Type\': \'application/json\'\n             }\n            req = urllib2.Request(\n            \'https://manager.gimbal.com/api/v2/places\',data_json, headers)\n            res=json.load(urllib2.urlopen(req))\n            place_id=res["id"]\n\n            #insert into datastore\n\n            pl_id=db.places.insert(place_id=place_id,place_desc=place_desc,place_name=place_name,place_addr=place_addr,place_lat=place_lat,\n                              place_long=place_long)\n            \n            if(pl_id) :\n                message="success"\n                return message\n            else :\n                    message="error"\n                    return error\n         \n        else:\n          message="user not authorized"\n          return message\n    else: \n            message="User not Authenticated"\n            return message\n  \ndef getplace():\n\n    # From Directly Gimbal\n    import urllib, urllib2, base64\n\n\n    headers = {\n     \'Authorization\': \'Token token=f50ccc1aab3314434ae32dada87312cb\',\n     \'Content-Type\': \'application/json\'\n     }\n    req = urllib2.Request(\n        \'https://manager.gimbal.com/api/v2/places\',\n        None, headers)\n\n    return urllib2.urlopen(req).read()\n\n\n\ndef getplaces():\n     \n    """uemail=request.vars.uemail\n    password=request.vars.password\n\n    valid_usr=authenticate(uemail,password)\n    if valid_usr:\n      #From Datastore"""\n    return dict(rows = db(db.places.ALL).select())\n    \n    \n\ndef index():\n    """\n    example action using the internationalization operator T and flash\n    rendered by views/default/index.html or views/generic.html\n\n    if you need a simple wiki simply replace the two lines below with:\n    return auth.wiki()\n    """\n    response.flash = T("Welcome to web2py!")\n    return dict(message=T(\'Hello World\'))\n\n\ndef user():\n    """\n    exposes:\n    http://..../[app]/default/user/login\n    http://..../[app]/default/user/logout\n    http://..../[app]/default/user/register\n    http://..../[app]/default/user/profile\n    http://..../[app]/default/user/retrieve_password\n    http://..../[app]/default/user/change_password\n    http://..../[app]/default/user/manage_users (requires membership in\n    use @auth.requires_login()\n        @auth.requires_membership(\'group name\')\n        @auth.requires_permission(\'read\',\'table name\',record_id)\n    to decorate functions that need access control\n    """\n    return dict(form=auth())\n\n\n@cache.action()\ndef download():\n    """\n    allows downloading of uploaded files\n    http://..../[app]/default/download/[filename]\n    """\n    return response.download(request, db)\n\n\ndef call():\n    """\n    exposes services. for example:\n    http://..../[app]/default/call/jsonrpc\n    decorate with @services.jsonrpc the functions to expose\n    supports xml, json, xmlrpc, jsonrpc, amfrpc, rss, csv\n    """\n    return service()\n\n\n@auth.requires_login() \ndef api():\n    """\n    this is example of API with access control\n    WEB2PY provides Hypermedia API (Collection+JSON) Experimental\n    """\n    from gluon.contrib.hypermedia import Collection\n    rules = {\n        \'<tablename>\': {\'GET\':{},\'POST\':{},\'PUT\':{},\'DELETE\':{}},\n        }\n    return Collection(db).process(request,response,rules)\n\nresponse._vars=response._caller(getplaces)\n'
+p7
+sS'snapshot'
+p8
+(dp9
+S'exception'
+p10
+(dp11
+S'__getslice__'
+p12
+S"<method-wrapper '__getslice__' of exceptions.SyntaxError object>"
+p13
+sS'text'
+p14
+S'None'
+p15
+sS'__str__'
+p16
+S"<method-wrapper '__str__' of exceptions.SyntaxError object>"
+p17
+sS'__reduce__'
+p18
+S'<built-in method __reduce__ of exceptions.SyntaxError object>'
+p19
+sS'__dict__'
+p20
+S'{}'
+p21
+sS'__sizeof__'
+p22
+S'<built-in method __sizeof__ of exceptions.SyntaxError object>'
+p23
+sS'__init__'
+p24
+S"<method-wrapper '__init__' of exceptions.SyntaxError object>"
+p25
+sS'__setattr__'
+p26
+S"<method-wrapper '__setattr__' of exceptions.SyntaxError object>"
+p27
+sS'__reduce_ex__'
+p28
+S'<built-in method __reduce_ex__ of exceptions.SyntaxError object>'
+p29
+sS'__new__'
+p30
+S'<built-in method __new__ of type object>'
+p31
+sS'__format__'
+p32
+S'<built-in method __format__ of exceptions.SyntaxError object>'
+p33
+sS'__class__'
+p34
+S"<type 'exceptions.SyntaxError'>"
+p35
+sS'filename'
+p36
+S'None'
+p37
+sS'lineno'
+p38
+S'None'
+p39
+sS'msg'
+p40
+S"'Set: no tables selected'"
+p41
+sS'__doc__'
+p42
+S"'Invalid syntax.'"
+p43
+sS'__getitem__'
+p44
+S"<method-wrapper '__getitem__' of exceptions.SyntaxError object>"
+p45
+sS'__setstate__'
+p46
+S'<built-in method __setstate__ of exceptions.SyntaxError object>'
+p47
+sS'__getattribute__'
+p48
+S"<method-wrapper '__getattribute__' of exceptions.SyntaxError object>"
+p49
+sS'print_file_and_line'
+p50
+S'None'
+p51
+sS'args'
+p52
+S"('Set: no tables selected',)"
+p53
+sS'__subclasshook__'
+p54
+S'<built-in method __subclasshook__ of type object>'
+p55
+sS'offset'
+p56
+S'None'
+p57
+sS'__unicode__'
+p58
+S'<built-in method __unicode__ of exceptions.SyntaxError object>'
+p59
+sS'__delattr__'
+p60
+S"<method-wrapper '__delattr__' of exceptions.SyntaxError object>"
+p61
+sS'__repr__'
+p62
+S"<method-wrapper '__repr__' of exceptions.SyntaxError object>"
+p63
+sS'__hash__'
+p64
+S"<method-wrapper '__hash__' of exceptions.SyntaxError object>"
+p65
+ssS'evalue'
+p66
+S'Set: no tables selected'
+p67
+sS'request'
+p68
+cgluon.html
+XML_unpickle
+p69
+(S's\xdca\x00\x00<div><table><tr><td style="font-weight:bold;vertical-align:top;">ajax</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">application</td><td style="vertical-align:top;">:</td><td><div>smartapp</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">args</td><td style="vertical-align:top;">:</td><td><div><table></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">cid</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">client</td><td style="vertical-align:top;">:</td><td><div>127.0.0.1</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">controller</td><td style="vertical-align:top;">:</td><td><div>default</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">cookies</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">session_id_admin</td><td style="vertical-align:top;">:</td><td><div>127.0.0.1-038e888c-459e-4485-a230-bcc72274ed52<table><tr><td style="font-weight:bold;vertical-align:top;">comment</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">domain</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">expires</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">httponly</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">max-age</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">path</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">secure</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">version</td><td style="vertical-align:top;">:</td><td><div></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_id_smartapp</td><td style="vertical-align:top;">:</td><td><div>127.0.0.1-a2aa53b8-7a64-47b3-adab-4f0e8df4fe98<table><tr><td style="font-weight:bold;vertical-align:top;">comment</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">domain</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">expires</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">httponly</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">max-age</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">path</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">secure</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">version</td><td style="vertical-align:top;">:</td><td><div></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_id_welcome</td><td style="vertical-align:top;">:</td><td><div>127.0.0.1-dac24ab5-7f23-460e-a0a4-0095f97550d5<table><tr><td style="font-weight:bold;vertical-align:top;">comment</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">domain</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">expires</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">httponly</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">max-age</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">path</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">secure</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">version</td><td style="vertical-align:top;">:</td><td><div></div></td></tr></table></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">env</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">HTTP_ACCEPT</td><td style="vertical-align:top;">:</td><td><div>text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_ACCEPT_ENCODING</td><td style="vertical-align:top;">:</td><td><div>gzip, deflate, sdch</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_ACCEPT_LANGUAGE</td><td style="vertical-align:top;">:</td><td><div>en-US,en;q=0.8</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_CONNECTION</td><td style="vertical-align:top;">:</td><td><div>keep-alive</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_COOKIE</td><td style="vertical-align:top;">:</td><td><div>session_id_welcome=127.0.0.1-dac24ab5-7f23-460e-a0a4-0095f97550d5; session_id_smartapp=127.0.0.1-a2aa53b8-7a64-47b3-adab-4f0e8df4fe98; session_id_admin=127.0.0.1-038e888c-459e-4485-a230-bcc72274ed52</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_HOST</td><td style="vertical-align:top;">:</td><td><div>127.0.0.1:8000</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_REFERER</td><td style="vertical-align:top;">:</td><td><div>http://127.0.0.1:8000/admin/default/edit/smartapp/controllers/default.py?id=controllers__default__py</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">HTTP_USER_AGENT</td><td style="vertical-align:top;">:</td><td><div>Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">PATH_INFO</td><td style="vertical-align:top;">:</td><td><div>/smartapp/default/getplaces</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">QUERY_STRING</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">REMOTE_ADDR</td><td style="vertical-align:top;">:</td><td><div>127.0.0.1</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">REMOTE_PORT</td><td style="vertical-align:top;">:</td><td><div>64139</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">REQUEST_METHOD</td><td style="vertical-align:top;">:</td><td><div>GET</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">SCRIPT_NAME</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">SERVER_NAME</td><td style="vertical-align:top;">:</td><td><div>mansi</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">SERVER_PORT</td><td style="vertical-align:top;">:</td><td><div>8000</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">SERVER_PROTOCOL</td><td style="vertical-align:top;">:</td><td><div>HTTP/1.1</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">SERVER_SOFTWARE</td><td style="vertical-align:top;">:</td><td><div>Rocket 1.2.6</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">app_folders</td><td style="vertical-align:top;">:</td><td><div>set([&#x27;C:\\\\Users\\\\mansi\\\\Downloads\\\\web2py_src\\\\web2py\\\\applications\\\\admin\\\\&#x27;, &#x27;C:\\\\Users\\\\mansi\\\\Downloads\\\\web2py_src\\\\web2py\\\\applications\\\\welcome\\\\&#x27;, &#x27;C:\\\\Users\\\\mansi\\\\Downloads\\\\web2py_src\\\\web2py\\\\applications\\\\smartapp\\\\&#x27;])</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">applications_parent</td><td style="vertical-align:top;">:</td><td><div>C:\\Users\\mansi\\Downloads\\web2py_src\\web2py</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">cmd_args</td><td style="vertical-align:top;">:</td><td><div><table></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">cmd_options</td><td style="vertical-align:top;">:</td><td><div>&lt;Values at 0x2ea9328: {&#x27;verbose&#x27;: False, &#x27;ip&#x27;: &#x27;127.0.0.1&#x27;, &#x27;debuglevel&#x27;: 30, &#x27;with_scheduler&#x27;: False, &#x27;ips&#x27;: [&#x27;2001:0:5ef5:79fb:86f:1d85:3f57:fff2&#x27;, &#x27;2601:9:500:4620:2de1:caca:4cfb:b95d&#x27;, &#x27;fe80::86f:1d85:3f57:fff2%7&#x27;, &#x27;fe80::202b:cfb2:565e:a5d0%4&#x27;, &#x27;192.168.0.13&#x27;, &#x27;2601:9:500:4620:202b:cfb2:565e:a5d0&#x27;, &#x27;2601:9:500:4620:3623:87ff:fec5:9727&#x27;], &#x27;shutdown_timeout&#x27;: 5, &#x27;taskbar&#x27;: False, &#x27;with_coverage&#x27;: False, &#x27;scheduler_groups&#x27;: None, &#x27;port&#x27;: 8000, &#x27;maxthreads&#x27;: None, &#x27;softcron&#x27;: False, &#x27;server_name&#x27;: &#x27;mansi&#x27;, &#x27;bpython&#x27;: False, &#x27;nogui&#x27;: False, &#x27;pid_filename&#x27;: &#x27;httpserver.pid&#x27;, &#x27;extcron&#x27;: False, &#x27;runcron&#x27;: False, &#x27;run_system_tests&#x27;: False, &#x27;test&#x27;: None, &#x27;folder&#x27;: &#x27;C:\\\\Users\\\\mansi\\\\Downloads\\\\web2py_src\\\\web2py&#x27;, &#x27;config&#x27;: &#x27;&#x27;, &#x27;minthreads&#x27;: None, &#x27;shell&#x27;: None, &#x27;run&#x27;: &#x27;&#x27;, &#x27;log_filename&#x27;: &#x27;httpserver.log&#x27;, &#x27;profiler_dir&#x27;: None, &#x27;args&#x27;: [&#x27;&#x27;], &#x27;socket_timeout&#x27;: 5, &#x27;ssl_ca_certificate&#x27;: None, &#x27;scheduler&#x27;: None, &#x27;interfaces&#x27;: None, &#x27;ssl_private_key&#x27;: &#x27;&#x27;, &#x27;gae&#x27;: None, &#x27;password&#x27;: &#x27;&lt;ask&gt;&#x27;, &#x27;request_queue_size&#x27;: 5, &#x27;ssl_certificate&#x27;: &#x27;&#x27;, &#x27;cronjob&#x27;: False, &#x27;numthreads&#x27;: None, &#x27;quiet&#x27;: False, &#x27;import_models&#x27;: False, &#x27;timeout&#x27;: 10, &#x27;plain&#x27;: False, &#x27;nobanner&#x27;: False}&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">db_sessions</td><td style="vertical-align:top;">:</td><td><div>set([])</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">debugging</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">gluon_parent</td><td style="vertical-align:top;">:</td><td><div>C:\\Users\\mansi\\Downloads\\web2py_src\\web2py</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_accept</td><td style="vertical-align:top;">:</td><td><div>text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_accept_encoding</td><td style="vertical-align:top;">:</td><td><div>gzip, deflate, sdch</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_accept_language</td><td style="vertical-align:top;">:</td><td><div>en-US,en;q=0.8</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_connection</td><td style="vertical-align:top;">:</td><td><div>keep-alive</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_cookie</td><td style="vertical-align:top;">:</td><td><div>session_id_welcome=127.0.0.1-dac24ab5-7f23-460e-a0a4-0095f97550d5; session_id_smartapp=127.0.0.1-a2aa53b8-7a64-47b3-adab-4f0e8df4fe98; session_id_admin=127.0.0.1-038e888c-459e-4485-a230-bcc72274ed52</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_host</td><td style="vertical-align:top;">:</td><td><div>127.0.0.1:8000</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_referer</td><td style="vertical-align:top;">:</td><td><div>http://127.0.0.1:8000/admin/default/edit/smartapp/controllers/default.py?id=controllers__default__py</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">http_user_agent</td><td style="vertical-align:top;">:</td><td><div>Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_jython</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_pypy</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_source</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">local_hosts</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>2001:0:5ef5:79fb:86f:1d85:3f57:fff2</div></td></tr><tr><td><div>2601:9:500:4620:2de1:caca:4cfb:b95d</div></td></tr><tr><td><div>fe80::86f:1d85:3f57:fff2%7</div></td></tr><tr><td><div>fe80::202b:cfb2:565e:a5d0%4</div></td></tr><tr><td><div>::ffff:127.0.0.1</div></td></tr><tr><td><div>::1</div></td></tr><tr><td><div>192.168.0.13</div></td></tr><tr><td><div>mansi</div></td></tr><tr><td><div>2601:9:500:4620:202b:cfb2:565e:a5d0</div></td></tr><tr><td><div>127.0.0.1</div></td></tr><tr><td><div>2601:9:500:4620:3623:87ff:fec5:9727</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">path_info</td><td style="vertical-align:top;">:</td><td><div>/smartapp/default/getplaces</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">query_string</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">remote_addr</td><td style="vertical-align:top;">:</td><td><div>127.0.0.1</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">remote_port</td><td style="vertical-align:top;">:</td><td><div>64139</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">request_method</td><td style="vertical-align:top;">:</td><td><div>GET</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">request_uri</td><td style="vertical-align:top;">:</td><td><div>/smartapp/default/getplaces</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">script_name</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">server_name</td><td style="vertical-align:top;">:</td><td><div>mansi</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">server_port</td><td style="vertical-align:top;">:</td><td><div>8000</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">server_protocol</td><td style="vertical-align:top;">:</td><td><div>HTTP/1.1</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">server_software</td><td style="vertical-align:top;">:</td><td><div>Rocket 1.2.6</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">web2py_path</td><td style="vertical-align:top;">:</td><td><div>C:\\Users\\mansi\\Downloads\\web2py_src\\web2py</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">web2py_version</td><td style="vertical-align:top;">:</td><td><div>2.9.12-stable+timestamp.2015.01.17.06.11.03</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.errors</td><td style="vertical-align:top;">:</td><td><div>&lt;open file &#x27;&lt;stderr&gt;&#x27;, mode &#x27;w&#x27; at 0x01C3D0D0&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.file_wrapper</td><td style="vertical-align:top;">:</td><td><div>&lt;class wsgiref.util.FileWrapper at 0x01F58180&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.input</td><td style="vertical-align:top;">:</td><td><div>&lt;socket._fileobject object at 0x09273D30&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.multiprocess</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.multithread</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.run_once</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.url_scheme</td><td style="vertical-align:top;">:</td><td><div>http</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi.version</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>1</div></td></tr><tr><td><div>0</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_errors</td><td style="vertical-align:top;">:</td><td><div>&lt;open file &#x27;&lt;stderr&gt;&#x27;, mode &#x27;w&#x27; at 0x01C3D0D0&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_file_wrapper</td><td style="vertical-align:top;">:</td><td><div>&lt;class wsgiref.util.FileWrapper at 0x01F58180&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_input</td><td style="vertical-align:top;">:</td><td><div>&lt;socket._fileobject object at 0x09273D30&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_multiprocess</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_multithread</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_run_once</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_url_scheme</td><td style="vertical-align:top;">:</td><td><div>http</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi_version</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>1</div></td></tr><tr><td><div>0</div></td></tr></table></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">extension</td><td style="vertical-align:top;">:</td><td><div>html</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">folder</td><td style="vertical-align:top;">:</td><td><div>C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\applications\\smartapp\\</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">function</td><td style="vertical-align:top;">:</td><td><div>getplaces</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">global_settings</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">app_folders</td><td style="vertical-align:top;">:</td><td><div>set([&#x27;C:\\\\Users\\\\mansi\\\\Downloads\\\\web2py_src\\\\web2py\\\\applications\\\\admin\\\\&#x27;, &#x27;C:\\\\Users\\\\mansi\\\\Downloads\\\\web2py_src\\\\web2py\\\\applications\\\\welcome\\\\&#x27;, &#x27;C:\\\\Users\\\\mansi\\\\Downloads\\\\web2py_src\\\\web2py\\\\applications\\\\smartapp\\\\&#x27;])</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">applications_parent</td><td style="vertical-align:top;">:</td><td><div>C:\\Users\\mansi\\Downloads\\web2py_src\\web2py</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">cmd_args</td><td style="vertical-align:top;">:</td><td><div><table></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">cmd_options</td><td style="vertical-align:top;">:</td><td><div>&lt;Values at 0x2ea9328: {&#x27;verbose&#x27;: False, &#x27;ip&#x27;: &#x27;127.0.0.1&#x27;, &#x27;debuglevel&#x27;: 30, &#x27;with_scheduler&#x27;: False, &#x27;ips&#x27;: [&#x27;2001:0:5ef5:79fb:86f:1d85:3f57:fff2&#x27;, &#x27;2601:9:500:4620:2de1:caca:4cfb:b95d&#x27;, &#x27;fe80::86f:1d85:3f57:fff2%7&#x27;, &#x27;fe80::202b:cfb2:565e:a5d0%4&#x27;, &#x27;192.168.0.13&#x27;, &#x27;2601:9:500:4620:202b:cfb2:565e:a5d0&#x27;, &#x27;2601:9:500:4620:3623:87ff:fec5:9727&#x27;], &#x27;shutdown_timeout&#x27;: 5, &#x27;taskbar&#x27;: False, &#x27;with_coverage&#x27;: False, &#x27;scheduler_groups&#x27;: None, &#x27;port&#x27;: 8000, &#x27;maxthreads&#x27;: None, &#x27;softcron&#x27;: False, &#x27;server_name&#x27;: &#x27;mansi&#x27;, &#x27;bpython&#x27;: False, &#x27;nogui&#x27;: False, &#x27;pid_filename&#x27;: &#x27;httpserver.pid&#x27;, &#x27;extcron&#x27;: False, &#x27;runcron&#x27;: False, &#x27;run_system_tests&#x27;: False, &#x27;test&#x27;: None, &#x27;folder&#x27;: &#x27;C:\\\\Users\\\\mansi\\\\Downloads\\\\web2py_src\\\\web2py&#x27;, &#x27;config&#x27;: &#x27;&#x27;, &#x27;minthreads&#x27;: None, &#x27;shell&#x27;: None, &#x27;run&#x27;: &#x27;&#x27;, &#x27;log_filename&#x27;: &#x27;httpserver.log&#x27;, &#x27;profiler_dir&#x27;: None, &#x27;args&#x27;: [&#x27;&#x27;], &#x27;socket_timeout&#x27;: 5, &#x27;ssl_ca_certificate&#x27;: None, &#x27;scheduler&#x27;: None, &#x27;interfaces&#x27;: None, &#x27;ssl_private_key&#x27;: &#x27;&#x27;, &#x27;gae&#x27;: None, &#x27;password&#x27;: &#x27;&lt;ask&gt;&#x27;, &#x27;request_queue_size&#x27;: 5, &#x27;ssl_certificate&#x27;: &#x27;&#x27;, &#x27;cronjob&#x27;: False, &#x27;numthreads&#x27;: None, &#x27;quiet&#x27;: False, &#x27;import_models&#x27;: False, &#x27;timeout&#x27;: 10, &#x27;plain&#x27;: False, &#x27;nobanner&#x27;: False}&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">db_sessions</td><td style="vertical-align:top;">:</td><td><div>set([])</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">debugging</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">gluon_parent</td><td style="vertical-align:top;">:</td><td><div>C:\\Users\\mansi\\Downloads\\web2py_src\\web2py</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_jython</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_pypy</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_source</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">local_hosts</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>2001:0:5ef5:79fb:86f:1d85:3f57:fff2</div></td></tr><tr><td><div>2601:9:500:4620:2de1:caca:4cfb:b95d</div></td></tr><tr><td><div>fe80::86f:1d85:3f57:fff2%7</div></td></tr><tr><td><div>fe80::202b:cfb2:565e:a5d0%4</div></td></tr><tr><td><div>::ffff:127.0.0.1</div></td></tr><tr><td><div>::1</div></td></tr><tr><td><div>192.168.0.13</div></td></tr><tr><td><div>mansi</div></td></tr><tr><td><div>2601:9:500:4620:202b:cfb2:565e:a5d0</div></td></tr><tr><td><div>127.0.0.1</div></td></tr><tr><td><div>2601:9:500:4620:3623:87ff:fec5:9727</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">web2py_version</td><td style="vertical-align:top;">:</td><td><div>2.9.12-stable+timestamp.2015.01.17.06.11.03</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_https</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_local</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_restful</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_sheduler</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">is_shell</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">now</td><td style="vertical-align:top;">:</td><td><div>datetime.datetime(2015, 4, 23, 18, 43, 47, 597000)</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">raw_args</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">raw_extension</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">url</td><td style="vertical-align:top;">:</td><td><div>/smartapp/default/getplaces</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">utcnow</td><td style="vertical-align:top;">:</td><td><div>datetime.datetime(2015, 4, 24, 0, 43, 47, 597000)</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">uuid</td><td style="vertical-align:top;">:</td><td><div>smartapp/127.0.0.1.2015-04-23.18-43-47.8cd7fb9d-471d-45e1-b721-3e859f905e51</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">wsgi</td><td style="vertical-align:top;">:</td><td><div>&lt;gluon.main.LazyWSGI object at 0x0A05EE10&gt;</div></td></tr></table></div>'
+tRp70
+sS'frames'
+p71
+(lp72
+(dp73
+S'file'
+p74
+S'C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\gluon\\restricted.py'
+p75
+sS'dump'
+p76
+(dp77
+S'environment'
+p78
+S"{'A': <class 'gluon.html.A'>, 'ANY_OF': <class 'gluon.validators.ANY_OF'>, 'ASSIGNJS': <function ASSIGNJS>, 'Auth': <class 'gluon.tools.Auth'>, 'B': <class 'gluon.html.B'>, 'BEAUTIFY': <class 'gluon.html.BEAUTIFY'>, 'BODY': <class 'gluon.html.BODY'>, 'BR': <class 'gluon.html.BR'>, 'BUTTON': <class 'gluon.html.BUTTON'>, 'CAT': <class 'gluon.html.CAT'>, ...}"
+p79
+sS'ccode'
+p80
+S'<code object <module> at 0949FDE8, file "C:\\User...ations\\smartapp\\controllers/default.py", line 11>'
+p81
+ssS'lnum'
+p82
+I224
+sS'lines'
+p83
+(dp84
+I224
+S'        exec ccode in environment'
+p85
+sI225
+S'    except HTTP:'
+p86
+sI226
+S'        raise'
+p87
+sI227
+S'    except RestrictedError:'
+p88
+sI228
+S'        # do not encapsulate (obfuscate) the original RestrictedError'
+p89
+sI219
+S'    try:'
+p90
+sI220
+S'        if isinstance(code, types.CodeType):'
+p91
+sI221
+S'            ccode = code'
+p92
+sI222
+S'        else:'
+p93
+sI223
+S'            ccode = compile2(code, layer)'
+p94
+ssS'call'
+p95
+S"(code='# -*- coding: utf-8 -*-\\n# this file is released ...les)\\n\\nresponse._vars=response._caller(getplaces)\\n', environment={'A': <class 'gluon.html.A'>, 'ANY_OF': <class 'gluon.validators.ANY_OF'>, 'ASSIGNJS': <function ASSIGNJS>, 'Auth': <class 'gluon.tools.Auth'>, 'B': <class 'gluon.html.B'>, 'BEAUTIFY': <class 'gluon.html.BEAUTIFY'>, 'BODY': <class 'gluon.html.BODY'>, 'BR': <class 'gluon.html.BR'>, 'BUTTON': <class 'gluon.html.BUTTON'>, 'CAT': <class 'gluon.html.CAT'>, ...}, layer=r'C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\applications\\smartapp\\controllers/default.py')"
+p96
+sS'func'
+p97
+S'restricted'
+p98
+sa(dp99
+g74
+S'C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\applications\\smartapp\\controllers\\default.py'
+p100
+sg76
+(dp101
+sg82
+I222
+sg83
+(dp102
+I211
+S'def api():'
+p103
+sI212
+S'    """'
+p104
+sI213
+S'    this is example of API with access control'
+p105
+sI214
+S'    WEB2PY provides Hypermedia API (Collection+JSON) Experimental'
+p106
+sI215
+S'    """'
+p107
+sI216
+S'    from gluon.contrib.hypermedia import Collection'
+p108
+sI217
+S'    rules = {'
+p109
+sI218
+S"        '<tablename>': {'GET':{},'POST':{},'PUT':{},'DELETE':{}},"
+p110
+sI219
+S'        }'
+p111
+sI220
+S'    return Collection(db).process(request,response,rules)'
+p112
+ssg95
+S'()'
+p113
+sg97
+S'<module>'
+p114
+sa(dp115
+g74
+S'C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\gluon\\globals.py'
+p116
+sg76
+(dp117
+S'self'
+p118
+S'undefined'
+p119
+sS'f'
+S'<function getplaces>'
+p120
+ssg82
+I393
+sg83
+(dp121
+I388
+S"        self.flash = ''            # used by the default view layout"
+p122
+sI389
+S'        self.meta = Storage()      # used by web2py_ajax.html'
+p123
+sI390
+S'        self.menu = []             # used by the default view layout'
+p124
+sI391
+S'        self.files = []            # used by web2py_ajax.html'
+p125
+sI392
+S'        self._vars = None'
+p126
+sI393
+S'        self._caller = lambda f: f()'
+p127
+sI394
+S'        self._view_environment = None'
+p128
+sI395
+S'        self._custom_commit = None'
+p129
+sI396
+S'        self._custom_rollback = None'
+p130
+sI397
+S"        self.generic_patterns = ['*']"
+p131
+ssg95
+S'(f=<function getplaces>)'
+p132
+sg97
+S'<lambda>'
+p133
+sa(dp134
+g74
+S'C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\applications\\smartapp\\controllers\\default.py'
+p135
+sg76
+(dp136
+S'rows'
+p137
+g119
+sS').select'
+p138
+g119
+sS'global db'
+p139
+S'<DAL uri="sqlite://storage.sqlite">'
+p140
+sS'db.places.ALL'
+p141
+S'<gluon.dal.helpers.classes.SQLALL object>'
+p142
+sS'db.places'
+p143
+S'<Table places (id,place_id,place_name,place_desc,place_addr,place_lat,place_long,place_temp)>'
+p144
+sS'builtindict'
+p145
+S"<type 'dict'>"
+p146
+ssg82
+I157
+sg83
+(dp147
+I160
+S''
+sI161
+S'def index():'
+p148
+sI152
+S'    password=request.vars.password'
+p149
+sI153
+S''
+sI154
+S'    valid_usr=authenticate(uemail,password)'
+p150
+sI155
+S'    if valid_usr:'
+p151
+sI156
+S'      #From Datastore"""'
+p152
+sI157
+S'    return dict(rows = db(db.places.ALL).select())'
+p153
+sI158
+S''
+sI159
+S''
+ssg95
+S'()'
+p154
+sg97
+S'getplaces'
+p155
+sa(dp156
+g74
+S'C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\gluon\\dal\\objects.py'
+p157
+sg76
+(dp158
+S'self.query'
+p159
+S'<gluon.dal.helpers.classes.SQLALL object>'
+p160
+sS'adapter.select'
+p161
+S'<bound method SQLiteAdapter.select of <gluon.dal.adapters.sqlite.SQLiteAdapter object>>'
+p162
+sS'fields'
+p163
+S'[]'
+p164
+sS'adapter'
+p165
+S'<gluon.dal.adapters.sqlite.SQLiteAdapter object>'
+p166
+sS'attributes'
+p167
+g21
+sS'self'
+p168
+S'<Set places.id, places.place_id, places.place_na....place_lat, places.place_long, places.place_temp>'
+p169
+ssg82
+I2066
+sg83
+(dp170
+I2061
+S"                                    attributes.get('join',None),"
+p171
+sI2062
+S"                                    attributes.get('left',None),"
+p172
+sI2063
+S"                                    attributes.get('orderby',None),"
+p173
+sI2064
+S"                                    attributes.get('groupby',None))"
+p174
+sI2065
+S'        fields = adapter.expand_all(fields, tablenames)'
+p175
+sI2066
+S'        return adapter.select(self.query,fields,attributes)'
+p176
+sI2067
+S''
+sI2068
+S'    def nested_select(self,*fields,**attributes):'
+p177
+sI2069
+S'        return Expression(self.db,self._select(*fields,**attributes))'
+p178
+sI2070
+S''
+ssg95
+S'(self=<Set places.id, places.place_id, places.place_na....place_lat, places.place_long, places.place_temp>, *fields=[], **attributes={})'
+p179
+sg97
+S'select'
+p180
+sa(dp181
+g74
+S'C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\gluon\\dal\\adapters\\sqlite.py'
+p182
+sg76
+(dp183
+S'fields'
+p184
+S'[]'
+p185
+sS'self'
+p186
+S'<gluon.dal.adapters.sqlite.SQLiteAdapter object>'
+p187
+sS').select'
+p188
+S'<bound method SQLiteAdapter.select of <gluon.dal.adapters.sqlite.SQLiteAdapter object>>'
+p189
+sS'attributes'
+p190
+g21
+sS'global SQLiteAdapter'
+p191
+S"<class 'gluon.dal.adapters.sqlite.SQLiteAdapter'>"
+p192
+sS'query'
+p193
+S'<gluon.dal.helpers.classes.SQLALL object>'
+p194
+sS'builtinsuper'
+p195
+S"<type 'super'>"
+p196
+ssg82
+I125
+sg83
+(dp197
+I128
+S'SPATIALLIBS = {'
+p198
+sI129
+S"    'Windows':'libspatialite',"
+p199
+sI120
+S'        Note that the entire database, rather than one record, is locked'
+p200
+sI121
+S'        (it will be locked eventually anyway by the following UPDATE).'
+p201
+sI122
+S'        """'
+p202
+sI123
+S"        if attributes.get('for_update', False) and not 'cache' in attributes:"
+p203
+sI124
+S"            self.execute('BEGIN IMMEDIATE TRANSACTION;')"
+p204
+sI125
+S'        return super(SQLiteAdapter, self).select(query, fields, attributes)'
+p205
+sI126
+S''
+sI127
+S''
+ssg95
+S'(self=<gluon.dal.adapters.sqlite.SQLiteAdapter object>, query=<gluon.dal.helpers.classes.SQLALL object>, fields=[], attributes={})'
+p206
+sg97
+g180
+sa(dp207
+g74
+S'C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\gluon\\dal\\adapters\\base.py'
+p208
+sg76
+(dp209
+S'self._select'
+p210
+S'<bound method SQLiteAdapter._select of <gluon.dal.adapters.sqlite.SQLiteAdapter object>>'
+p211
+sS'fields'
+p212
+S'[]'
+p213
+sS'self'
+p214
+S'<gluon.dal.adapters.sqlite.SQLiteAdapter object>'
+p215
+sS'sql'
+p216
+g119
+sS'query'
+p217
+S'<gluon.dal.helpers.classes.SQLALL object>'
+p218
+sS'attributes'
+p219
+g21
+ssg82
+I1219
+sg83
+(dp220
+I1216
+S'        """'
+p221
+sI1217
+S'        Always returns a Rows object, possibly empty.'
+p222
+sI1218
+S'        """'
+p223
+sI1219
+S'        sql = self._select(query, fields, attributes)'
+p224
+sI1220
+S"        cache = attributes.get('cache', None)"
+p225
+sI1221
+S"        if cache and attributes.get('cacheable',False):"
+p226
+sI1222
+S"            del attributes['cache']"
+p227
+sI1223
+S'            (cache_model, time_expire) = cache'
+p228
+sI1214
+S''
+sI1215
+S'    def select(self, query, fields, attributes):'
+p229
+ssg95
+S'(self=<gluon.dal.adapters.sqlite.SQLiteAdapter object>, query=<gluon.dal.helpers.classes.SQLALL object>, fields=[], attributes={})'
+p230
+sg97
+g180
+sa(dp231
+g74
+S'C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\gluon\\dal\\adapters\\base.py'
+p232
+sg76
+(dp233
+S'builtinSyntaxError'
+p234
+S"<type 'exceptions.SyntaxError'>"
+p235
+ssg82
+I1051
+sg83
+(dp236
+I1046
+S'            for tablename in tables(field):'
+p237
+sI1047
+S'                if not tablename in tablenames:'
+p238
+sI1048
+S'                    tablenames.append(tablename)'
+p239
+sI1049
+S''
+sI1050
+S'        if len(tablenames) < 1:'
+p240
+sI1051
+S"            raise SyntaxError('Set: no tables selected')"
+p241
+sI1052
+S'        def colexpand(field):'
+p242
+sI1053
+S'            return self.expand(field, colnames=True)'
+p243
+sI1054
+S'        self._colnames = map(colexpand, fields)'
+p244
+sI1055
+S'        def geoexpand(field):'
+p245
+ssg95
+S'(self=<gluon.dal.adapters.sqlite.SQLiteAdapter object>, query=<gluon.dal.helpers.classes.SQLALL object>, fields=[], attributes={})'
+p246
+sg97
+S'_select'
+p247
+sasS'pyver'
+p248
+S'Python 2.7.9: C:\\Python27\\python.exe (prefix: C:\\Python27)'
+p249
+sS'session'
+p250
+g69
+(S's6\x01\x00\x00<div><table><tr><td style="font-weight:bold;vertical-align:top;">last_orderby</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">last_query</td><td style="vertical-align:top;">:</td><td><div>db.users.id&gt;0</div></td></tr></table></div>'
+tRp251
+sS'etype'
+p252
+S"<type 'exceptions.SyntaxError'>"
+p253
+sS'date'
+p254
+S'Thu Apr 23 18:43:47 2015'
+p255
+sS'response'
+p256
+g69
+(S's\xde2\x00\x00<div><table><tr><td style="font-weight:bold;vertical-align:top;">body</td><td style="vertical-align:top;">:</td><td><div>&lt;cStringIO.StringO object at 0x0A03FDE0&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">cookies</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">session_id_smartapp</td><td style="vertical-align:top;">:</td><td><div>127.0.0.1-a2aa53b8-7a64-47b3-adab-4f0e8df4fe98<table><tr><td style="font-weight:bold;vertical-align:top;">comment</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">domain</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">expires</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">httponly</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">max-age</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">path</td><td style="vertical-align:top;">:</td><td><div>/</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">secure</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">version</td><td style="vertical-align:top;">:</td><td><div></div></td></tr></table></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">delimiters</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>{{</div></td></tr><tr><td><div>}}</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">files</td><td style="vertical-align:top;">:</td><td><div><table></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">flash</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">form_label_separator</td><td style="vertical-align:top;">:</td><td><div>: </div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">formstyle</td><td style="vertical-align:top;">:</td><td><div>table3cols</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">generic_patterns</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>*</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">google_analytics_id</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">headers</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">X-Powered-By</td><td style="vertical-align:top;">:</td><td><div>web2py</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">logo</td><td style="vertical-align:top;">:</td><td><div><a class="brand" href="http://www.web2py.com/"><b>web<span>2</span>py</b>&trade;&nbsp;</a></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">menu</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div><table><tr><td><div>Home</div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>/smartapp/default/index</div></td></tr><tr><td><div><table></table></div></td></tr></table></div></td></tr><tr><td><div><table><tr><td><div><span class="highlighted">web2py</span></div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>http://web2py.com</div></td></tr><tr><td><div><table><tr><td><div><table><tr><td><div>My Sites</div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>/admin/default/site</div></td></tr></table></div></td></tr><tr><td><div><table><tr><td><div>This App</div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>/admin/default/design/smartapp</div></td></tr><tr><td><div>[(&lt;lazyT &#x27;Controller&#x27;&gt;, False, &#x27;/admin/default/edit/smartapp/controllers/default.py&#x27;), (&lt;lazyT &#x27;View&#x27;&gt;, False, &#x27;/admin/default/edit/smartapp/views/default/getplaces.html&#x27;), (&lt;lazyT &#x27;Layout&#x27;&gt;, False, &#x27;/admin/default/edit/smartapp/views/layout.html&#x27;), (&lt;lazyT &#x27;Stylesheet&#x27;&gt;, False, &#x27;/admin/default/edit/smartapp/static/css/web2py.css&#x27;), (&lt;lazyT &#x27;DB Model&#x27;&gt;, False, &#x27;/admin/default/edit/smartapp/models/db.py&#x27;), (&lt;lazyT &#x27;Menu Model&#x27;&gt;, False, &#x27;/admin/default/edit/smartapp/models/menu.py&#x27;), (&lt;lazyT &#x27;Database&#x27;&gt;, False, &#x27;/smartapp/appadmin/index&#x27;), (&lt;lazyT &#x27;Errors&#x27;&gt;, False, &#x27;/admin/default/errors/smartapp&#x27;), (&lt;lazyT &#x27;About&#x27;&gt;, False, &#x27;/admin/default/about/smartapp&#x27;)]</div></td></tr></table></div></td></tr><tr><td><div><table><tr><td><div>web2py.com</div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>http://www.web2py.com</div></td></tr><tr><td><div>[(&lt;lazyT &#x27;Download&#x27;&gt;, False, &#x27;http://www.web2py.com/examples/default/download&#x27;), (&lt;lazyT &#x27;Support&#x27;&gt;, False, &#x27;http://www.web2py.com/examples/default/support&#x27;), (&lt;lazyT &#x27;Demo&#x27;&gt;, False, &#x27;http://web2py.com/demo_admin&#x27;), (&lt;lazyT &#x27;Quick Examples&#x27;&gt;, False, &#x27;http://web2py.com/examples/default/examples&#x27;), (&lt;lazyT &#x27;FAQ&#x27;&gt;, False, &#x27;http://web2py.com/AlterEgo&#x27;), (&lt;lazyT &#x27;Videos&#x27;&gt;, False, &#x27;http://www.web2py.com/examples/default/videos/&#x27;), (&lt;lazyT &#x27;Free Applications&#x27;&gt;, False, &#x27;http://web2py.com/appliances&#x27;), (&lt;lazyT &#x27;Plugins&#x27;&gt;, False, &#x27;http://web2py.com/plugins&#x27;), (&lt;lazyT &#x27;Layouts&#x27;&gt;, False, &#x27;http://web2py.com/layouts&#x27;), (&lt;lazyT &#x27;Recipes&#x27;&gt;, False, &#x27;http://web2pyslices.com/&#x27;), (&lt;lazyT &#x27;Semantic&#x27;&gt;, False, &#x27;http://web2py.com/semantic&#x27;)]</div></td></tr></table></div></td></tr><tr><td><div><table><tr><td><div>Documentation</div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>http://www.web2py.com/book</div></td></tr><tr><td><div>[(&lt;lazyT &#x27;Preface&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/00&#x27;), (&lt;lazyT &#x27;Introduction&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/01&#x27;), (&lt;lazyT &#x27;Python&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/02&#x27;), (&lt;lazyT &#x27;Overview&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/03&#x27;), (&lt;lazyT &#x27;The Core&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/04&#x27;), (&lt;lazyT &#x27;The Views&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/05&#x27;), (&lt;lazyT &#x27;Database&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/06&#x27;), (&lt;lazyT &#x27;Forms and Validators&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/07&#x27;), (&lt;lazyT &#x27;Email and SMS&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/08&#x27;), (&lt;lazyT &#x27;Access Control&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/09&#x27;), (&lt;lazyT &#x27;Services&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/10&#x27;), (&lt;lazyT &#x27;Ajax Recipes&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/11&#x27;), (&lt;lazyT &#x27;Components and Plugins&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/12&#x27;), (&lt;lazyT &#x27;Deployment Recipes&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/13&#x27;), (&lt;lazyT &#x27;Other Recipes&#x27;&gt;, False, &#x27;http://www.web2py.com/book/default/chapter/14&#x27;), (&lt;lazyT &#x27;Buy this book&#x27;&gt;, False, &#x27;http://stores.lulu.com/web2py&#x27;)]</div></td></tr></table></div></td></tr><tr><td><div><table><tr><td><div>Community</div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>None</div></td></tr><tr><td><div>[(&lt;lazyT &#x27;Groups&#x27;&gt;, False, &#x27;http://www.web2py.com/examples/default/usergroups&#x27;), (&lt;lazyT &#x27;Twitter&#x27;&gt;, False, &#x27;http://twitter.com/web2py&#x27;), (&lt;lazyT &#x27;Live Chat&#x27;&gt;, False, &#x27;http://webchat.freenode.net/?channels=web2py&#x27;)]</div></td></tr></table></div></td></tr><tr><td><div><table><tr><td><div>Plugins</div></td></tr><tr><td><div>False</div></td></tr><tr><td><div>None</div></td></tr><tr><td><div>[(&#x27;plugin_wiki&#x27;, False, &#x27;http://web2py.com/examples/default/download&#x27;), (&lt;lazyT &#x27;Other Plugins&#x27;&gt;, False, &#x27;http://web2py.com/plugins&#x27;), (&lt;lazyT &#x27;Layout Plugins&#x27;&gt;, False, &#x27;http://web2py.com/layouts&#x27;)]</div></td></tr></table></div></td></tr></table></div></td></tr></table></div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">meta</td><td style="vertical-align:top;">:</td><td><div><table><tr><td style="font-weight:bold;vertical-align:top;">author</td><td style="vertical-align:top;">:</td><td><div>Your Name &lt;you@example.com&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">generator</td><td style="vertical-align:top;">:</td><td><div>Web2py Web Framework</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">keywords</td><td style="vertical-align:top;">:</td><td><div>web2py, python, framework</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">models_to_run</td><td style="vertical-align:top;">:</td><td><div><table><tr><td><div>^\\w+\\.py$</div></td></tr><tr><td><div>^default/\\w+\\.py$</div></td></tr><tr><td><div>^default/getplaces/\\w+\\.py$</div></td></tr></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">postprocessing</td><td style="vertical-align:top;">:</td><td><div><table></table></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_client</td><td style="vertical-align:top;">:</td><td><div>127.0.0.1</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_cookie_compression_level</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_cookie_expires</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_cookie_key</td><td style="vertical-align:top;">:</td><td><div>None</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_data_name</td><td style="vertical-align:top;">:</td><td><div>session_data_smartapp</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_file</td><td style="vertical-align:top;">:</td><td><div>&lt;open file &#x27;C:\\\\Users\\\\mansi\\\\Downloads\\\\web2py_src\\\\web2py\\\\applications\\\\smartapp\\\\sessions\\\\07a\\\\148\\\\127.0.0.1-a2aa53b8-7a64-47b3-adab-4f0e8df4fe98&#x27;, mode &#x27;rb+&#x27; at 0x090D65A0&gt;</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_filename</td><td style="vertical-align:top;">:</td><td><div>C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\applications\\smartapp\\sessions\\127.0.0.1-a2aa53b8-7a64-47b3-adab-4f0e8df4fe98</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_hash</td><td style="vertical-align:top;">:</td><td><div>b39366b0146a41fc52ff196cdaebe200</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_id</td><td style="vertical-align:top;">:</td><td><div>127.0.0.1-a2aa53b8-7a64-47b3-adab-4f0e8df4fe98</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_id_name</td><td style="vertical-align:top;">:</td><td><div>session_id_smartapp</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_locked</td><td style="vertical-align:top;">:</td><td><div>True</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_masterapp</td><td style="vertical-align:top;">:</td><td><div>smartapp</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_new</td><td style="vertical-align:top;">:</td><td><div>False</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">session_storage_type</td><td style="vertical-align:top;">:</td><td><div>file</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">status</td><td style="vertical-align:top;">:</td><td><div>200</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">subtitle</td><td style="vertical-align:top;">:</td><td><div></div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">title</td><td style="vertical-align:top;">:</td><td><div>Smartapp</div></td></tr><tr><td style="font-weight:bold;vertical-align:top;">view</td><td style="vertical-align:top;">:</td><td><div>default/getplaces.html</div></td></tr></table></div>'
+tRp257
+sS'locals'
+p258
+(dp259
+S'tables'
+p260
+S'<bound method SQLiteAdapter.tables of <gluon.dal.adapters.sqlite.SQLiteAdapter object>>'
+p261
+sS'fields'
+p262
+S'[]'
+p263
+sS'self'
+p264
+S'<gluon.dal.adapters.sqlite.SQLiteAdapter object>'
+p265
+sS'tablenames'
+p266
+S'[]'
+p267
+sS'tablenames_for_common_filters'
+p268
+S'[]'
+p269
+sS'query'
+p270
+S'<gluon.dal.helpers.classes.SQLALL object>'
+p271
+sS'attributes'
+p272
+g21
+sS'args_get'
+p273
+S'<built-in method get of dict object>'
+p274
+sssS'traceback'
+p275
+S'Traceback (most recent call last):\n  File "C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\gluon\\restricted.py", line 224, in restricted\n    exec ccode in environment\n  File "C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\applications\\smartapp\\controllers/default.py", line 222, in <module>\n  File "C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\gluon\\globals.py", line 393, in <lambda>\n    self._caller = lambda f: f()\n  File "C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\applications\\smartapp\\controllers/default.py", line 157, in getplaces\n    return dict(rows = db(db.places.ALL).select())\n  File "C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\gluon\\dal\\objects.py", line 2066, in select\n    return adapter.select(self.query,fields,attributes)\n  File "C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\gluon\\dal\\adapters\\sqlite.py", line 125, in select\n    return super(SQLiteAdapter, self).select(query, fields, attributes)\n  File "C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\gluon\\dal\\adapters\\base.py", line 1219, in select\n    sql = self._select(query, fields, attributes)\n  File "C:\\Users\\mansi\\Downloads\\web2py_src\\web2py\\gluon\\dal\\adapters\\base.py", line 1051, in _select\n    raise SyntaxError(\'Set: no tables selected\')\nSyntaxError: Set: no tables selected\n'
+p276
+s.
