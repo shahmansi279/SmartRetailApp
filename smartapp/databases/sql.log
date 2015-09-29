@@ -7120,3 +7120,484 @@ success!
 success!
 success!
 success!
+timestamp: 2015-09-24T15:58:27.958169
+CREATE TABLE smartapp_users(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    u_fname CHAR(512),
+    u_lname CHAR(512),
+    u_email CHAR(512),
+    u_password CHAR(512),
+    u_phone CHAR(512),
+    u_alt_phone1 CHAR(512),
+    u_alt_phone2 CHAR(512),
+    u_address1 CHAR(512),
+    u_address2 CHAR(512),
+    u_city CHAR(512),
+    u_state CHAR(512),
+    u_zipcode CHAR(512),
+    u_role CHAR(512),
+    u_account_status CHAR(512),
+    u_activation_date TIMESTAMP,
+    u_deactivation_date TIMESTAMP,
+    u_pref_payment_method CHAR(512),
+    u_creditcard_type CHAR(512),
+    u_creditcard_number INTEGER,
+    u_creditcard_exp_month INTEGER,
+    u_creditcard_exp_year INTEGER,
+    u_creditcard_code INTEGER,
+    u_attr1 CHAR(512),
+    u_attr2 CHAR(512),
+    u_attr3 CHAR(512),
+    u_creation_date TIMESTAMP,
+    u_created_by CHAR(512),
+    u_last_update_date TIMESTAMP,
+    u_last_update_by CHAR(512)
+);
+success!
+success!
+timestamp: 2015-09-24T15:58:27.967058
+CREATE TABLE smartapp_beacons(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    beacon_id CHAR(512),
+    beacon_factory_id CHAR(512),
+    beacon_name CHAR(512),
+    beacon_desc CHAR(512),
+    beacon_type CHAR(512),
+    beacon_place_id CHAR(512),
+    beacon_locn CHAR(512),
+    beacon_status CHAR(512),
+    beacon_lat CHAR(512),
+    beacon_long CHAR(512),
+    beacon_make CHAR(512),
+    beacon_model CHAR(512),
+    beacon_year CHAR(512),
+    beacon_image_id INTEGER REFERENCES image (id) ON DELETE CASCADE  ,
+    beacon_activation_date TIMESTAMP,
+    beacon_deactivation_date TIMESTAMP,
+    beacon_recall_status CHAR(512),
+    beacon_recall_date DATE,
+    beacon_battery_type CHAR(512),
+    beacon_battery_lvl CHAR(512),
+    beacon_battery_changed_date DATE,
+    attr1 CHAR(512),
+    attr2 CHAR(512),
+    attr3 CHAR(512),
+    beacon_creation_date TIMESTAMP,
+    beacon_created_by CHAR(512),
+    beacon_last_update_date TIMESTAMP,
+    beacon_last_update_by CHAR(512)
+);
+success!
+timestamp: 2015-09-24T15:58:27.971105
+CREATE TABLE smartapp_places(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pl_id CHAR(512),
+    pl_name CHAR(512),
+    pl_desc CHAR(512),
+    pl_type CHAR(512),
+    pl_place_attrib1 CHAR(512),
+    pl_place_attrib2 CHAR(512),
+    pl_place_attrib3 CHAR(512),
+    pl_place_attrib4 CHAR(512),
+    pl_timing CHAR(512),
+    pl_orders_email CHAR(512),
+    pl_contact_email CHAR(512),
+    pl_phone CHAR(512),
+    pl_alt_phone1 CHAR(512),
+    pl_alt_phone2 CHAR(512),
+    pl_address1 CHAR(512),
+    pl_address2 CHAR(512),
+    pl_city CHAR(512),
+    pl_state CHAR(512),
+    pl_zipcode CHAR(512),
+    pl_website_url CHAR(512),
+    pl_lat CHAR(512),
+    pl_long CHAR(512),
+    pl_temp CHAR(512),
+    pl_humidity CHAR(512),
+    pl_other_attr1 CHAR(512),
+    pl_other_attr2 CHAR(512),
+    pl_other_attr3 CHAR(512),
+    pl_star_rating CHAR(512),
+    pl_accepted_payment_methods CHAR(512),
+    pl_accepted_payment_LOGO BLOB,
+    pl_member_club1 CHAR(512),
+    pl_member_club2 CHAR(512),
+    pl_member_club3 CHAR(512),
+    pl_icon_image_id INTEGER REFERENCES image (id) ON DELETE CASCADE  ,
+    pl_place_status CHAR(512),
+    pl_activation_date TIMESTAMP,
+    pl_deactivation_date TIMESTAMP,
+    pl_creation_date TIMESTAMP,
+    pl_created_by CHAR(512),
+    pl_last_update_date TIMESTAMP,
+    pl_last_update_by CHAR(512)
+);
+success!
+timestamp: 2015-09-24T15:58:27.974192
+CREATE TABLE smartapp_events(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id CHAR(512),
+    event_title CHAR(512),
+    event_desc CHAR(512),
+    event_timing CHAR(512),
+    event_website_url CHAR(512),
+    event_attrib1 CHAR(512),
+    event_attrib2 CHAR(512),
+    event_attrib3 CHAR(512),
+    event_attrib4 CHAR(512),
+    event_subscription_email CHAR(512),
+    event_contact_email CHAR(512),
+    event_address1 CHAR(512),
+    event_address2 CHAR(512),
+    event_city CHAR(512),
+    event_state CHAR(512),
+    event_zipcode CHAR(512),
+    event_phone CHAR(512),
+    event_alt_phone1 CHAR(512),
+    event_alt_phone2 CHAR(512),
+    event_place_lat CHAR(512),
+    event_place_long CHAR(512),
+    event_place_id INTEGER REFERENCES smartapp_places (id) ON DELETE CASCADE  ,
+    event_other_attr1 CHAR(512),
+    event_other_attr2 CHAR(512),
+    event_other_attr3 CHAR(512),
+    event_accepted_payment_methods CHAR(512),
+    event_accepted_payment_LOGO BLOB,
+    event_member_club1 CHAR(512),
+    event_member_club2 CHAR(512),
+    event_member_club3 CHAR(512),
+    event_star_rating CHAR(512),
+    event_status CHAR(512),
+    event_subscription_status CHAR(512),
+    event_subscription_status_desc CHAR(512),
+    icon_image_id INTEGER REFERENCES image (id) ON DELETE CASCADE  ,
+    event_creation_date TIMESTAMP,
+    event_created_by CHAR(512),
+    event_last_update_date TIMESTAMP,
+    event_last_update_by CHAR(512)
+);
+success!
+timestamp: 2015-09-24T15:58:27.977449
+CREATE TABLE smartapp_offers(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    offer_id CHAR(512),
+    offer_title CHAR(512),
+    offer_desc CHAR(512),
+    offer_validity_starts CHAR(512),
+    offer_validity_ends CHAR(512),
+    offer_website_url CHAR(512),
+    offer_status CHAR(512),
+    offer_place_id INTEGER REFERENCES smartapp_places (id) ON DELETE CASCADE  ,
+    offer_attrib1 CHAR(512),
+    offer_attrib2 CHAR(512),
+    offer_attrib3 CHAR(512),
+    offer_attrib4 CHAR(512),
+    offer_subscription_email CHAR(512),
+    offer_contact_email CHAR(512),
+    offer_phone CHAR(512),
+    offer_place_lat CHAR(512),
+    offer_place_long CHAR(512),
+    offer_other_attr1 CHAR(512),
+    offer_other_attr2 CHAR(512),
+    offer_other_attr3 CHAR(512),
+    offer_accepted_payment_methods CHAR(512),
+    offer_accepted_payment_LOGO BLOB,
+    offer_member_club1 CHAR(512),
+    offer_member_club2 CHAR(512),
+    offer_member_club3 CHAR(512),
+    offer_star_rating CHAR(512),
+    offer_subscription_status CHAR(512),
+    offer_subscription_status_desc CHAR(512),
+    icon_image_id INTEGER REFERENCES image (id) ON DELETE CASCADE  ,
+    offer_creation_date TIMESTAMP,
+    offer_created_by CHAR(512),
+    offer_last_update_date TIMESTAMP,
+    offer_last_update_by CHAR(512)
+);
+success!
+timestamp: 2015-09-24T15:58:27.980295
+CREATE TABLE smartapp_indoormaps(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pl_id CHAR(512),
+    pl_name CHAR(512),
+    pl_desc CHAR(512),
+    pl_type CHAR(512),
+    pl_place_attrib1 CHAR(512),
+    pl_place_attrib2 CHAR(512),
+    pl_place_attrib3 CHAR(512),
+    pl_place_attrib4 CHAR(512),
+    pl_address1 CHAR(512),
+    pl_address2 CHAR(512),
+    pl_city CHAR(512),
+    pl_state CHAR(512),
+    pl_zipcode CHAR(512),
+    pl_lat CHAR(512),
+    pl_long CHAR(512),
+    pl_other_attr1 CHAR(512),
+    pl_other_attr2 CHAR(512),
+    pl_other_attr3 CHAR(512),
+    pl_icon_image_id INTEGER REFERENCES image (id) ON DELETE CASCADE  ,
+    pl_place_status CHAR(512),
+    pl_activation_date TIMESTAMP,
+    pl_deactivation_date TIMESTAMP,
+    pl_creation_date TIMESTAMP,
+    pl_created_by CHAR(512),
+    pl_last_update_date TIMESTAMP,
+    pl_last_update_by CHAR(512)
+);
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!
+success!

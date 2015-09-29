@@ -23,8 +23,8 @@ def register():
         if password :
             if phone :
                 if address :
-                    if zipcode :
-                        user_id=db.users.insert(uemail=uemail,password=password,phone=phone,address=address,zipcode=zipcode)
+                    if zipcode:    
+                        user_id=db.smartapp_users.insert(u_email=uemail,u_password=password,u_phone=phone,u_address1=address,u_zipcode=zipcode)
                         if user_id:
                                  message="success"
                                  code=200
@@ -35,16 +35,17 @@ def register():
     return json.dumps(dict(message=message))
 
 def login():
+    
     import cgi
     response.flash="Welcome"
     id=request.vars.uemail
     pwd=request.vars.password
-    rows=db(db.users.uemail==id).select(db.users.password)
+    rows=db(db.smartapp_users.u_email==id).select(db.smartapp_users.u_password)
 
     if rows :
         message="invalid username"
         code=401
-        if(str(rows[0].password)==pwd) :
+        if(str(rows[0].u_password)==pwd) :
             message="success"
             code=200
         else :
@@ -62,7 +63,7 @@ def login():
 
 def authenticate(uemail, password):
 
-    users= db((db.users.uemail== uemail)&(db.users.password==password)).select()
+    users= db((db.smartapp_users.u_email== uemail)&(db.smartapp_users.u_password==password)).select()
     if users:
         return True
     else:
@@ -70,9 +71,9 @@ def authenticate(uemail, password):
 
 def getuserrole(uemail):
     
-  users= db((db.users.uemail== uemail)).select(db.users.role)
+  users= db((db.smartapp_users.u_email== uemail)).select(db.smartapp_users.u_role)
   if users:
-        return users[0].role
+        return users[0].u_role
   
 
 def addplace():
@@ -111,8 +112,8 @@ def addplace():
 
             #insert into datastore
 
-            pl_id=db.places.insert(place_id=place_id,place_desc=place_desc,place_name=place_name,place_addr=place_addr,place_lat=place_lat,
-                              place_long=place_long)
+            pl_id=db.smartapp_places.insert(pl_id=place_id,pl_desc=place_desc,pl_name=place_name,pl_address1=place_addr,pl_lat=place_lat,
+                              pl_long=place_long)
             
             if(pl_id) :
                 code=200
@@ -177,12 +178,12 @@ def getevents():
     valid_usr=authenticate(uemail,password)
     if valid_usr:
       #From Datastore
-        rows = db(db.events.ev_place_id==place_id).select()
+        rows = db(db.smartapp_events.event_place_id==place_id).select()
         code=200
         response.headers['Content-Type']='application/json'
         response.status=int(code)
 
-        return json.dumps([{'event_id':r.event_id,'event_title':r.event_title,'event_desc':r.event_desc,'ev_place_lat':r.ev_place_lat,'ev_place_long':r.ev_place_long,'event_addr':r.event_addr,'icon_img_id':r.icon_image_id,'ev_place_id':r.ev_place_id,'event_timing':r.event_timing,'ev_img_url':getimage(r.icon_image_id)} for r in rows])
+        return json.dumps([{'event_id':r.event_id,'event_title':r.event_title,'event_desc':r.event_desc,'ev_place_lat':r.event_place_lat,'ev_place_long':r.event_place_long,'event_addr':r.event_address1,'icon_img_id':r.icon_image_id,'ev_place_id':r.event_place_id,'event_timing':r.event_timing,'ev_img_url':getimage(r.icon_image_id)} for r in rows])
     else :
         code=412
         response.headers['Content-Type']='application/json'
@@ -199,12 +200,12 @@ def getplaces():
     valid_usr=authenticate(uemail,password)
     if valid_usr:
       #From Datastore
-        rows = db(db.places.id>0).select()
+        rows = db(db.smartapp_places.id>0).select()
         code=200
         response.headers['Content-Type']='application/json'
         response.status=int(code)
 
-        return json.dumps([{'id':r.place_id,'id_p':r.id,'name':r.place_name,'place_desc':r.place_desc,'place_lat':r.place_lat,'place_long':r.place_long,'place_addr':r.place_addr,'pl_img_id':r.icon_image_id,'pl_img_url':getimage(r.icon_image_id),'pl_timing':r.place_timing} for r in rows])
+        return json.dumps([{'id':r.pl_id,'id_p':r.id,'name':r.pl_name,'place_desc':r.pl_desc,'place_lat':r.pl_lat,'place_long':r.pl_long,'place_addr':r.pl_address1,'pl_img_id':r.pl_icon_image_id,'pl_img_url':getimage(r.pl_icon_image_id),'pl_timing':r.pl_timing} for r in rows])
     else :
         code=412
         response.headers['Content-Type']='application/json'
@@ -247,7 +248,7 @@ def addbeacon():
             b_battery_lvl=res["battery_level"]
             #insert into datastore
 
-            b_id=db.beacons.insert(beacon_id=beacon_id,beacon_name=beacon_name,b_factory_id=b_factory_id,beacon_lat=beacon_lat,beacon_long=beacon_long,beacon_status=beacon_status,b_battery_lvl=b_battery_lvl)
+            b_id=db.smartapp_beacons.insert(beacon_id=beacon_id,beacon_name=beacon_name,beacon_factory_id=b_factory_id,beacon_lat=beacon_lat,beacon_long=beacon_long,beacon_status=beacon_status,beacon_battery_lvl=b_battery_lvl)
 
 
             if(b_id) :
@@ -343,7 +344,7 @@ def getallbeacons():
         response.headers['Content-Type']='application/json'
         response.status=int(code)
 
-        return json.dumps([{'id':r.beacon_id,'b_f_id':r.b_factory_id,'name':r.beacon_name,'beacon_desc':r.beacon_desc,'beacon_lat':r.beacon_lat,'beacon_long':r.beacon_long,'beacon_status':r.beacon_status,'b_place_id':r.b_place_id,'b_battery_lvl':r.b_battery_lvl }for r in rows])
+        return json.dumps([{'id':r.beacon_id,'b_f_id':r.beacon_factory_id,'name':r.beacon_name,'beacon_desc':r.beacon_desc,'beacon_lat':r.beacon_lat,'beacon_long':r.beacon_long,'beacon_status':r.beacon_status,'b_place_id':r.beacon_place_id,'b_battery_lvl':r.beacon_battery_lvl}for r in rows])
     else :
         code=412
         response.headers['Content-Type']='application/json'
@@ -487,7 +488,7 @@ def getimage(img_id):
 def getplaceid(place_id):
   
     pl_id=  place_id
-    placeid= db((db.places.place_id== pl_id)).select()
+    placeid= db((db.smartapp_places.pl_id== pl_id)).select()
     
   
     return placeid[0].id
@@ -495,9 +496,9 @@ def getplaceid(place_id):
 def getoffer():
    place_id=request.vars.place_id
    placeid=getplaceid(place_id)
-   rows= db(db.offers.offer_place_id== placeid).select()
+   rows= db(db.smartapp_offers.offer_place_id== placeid).select()
     
-   return json.dumps([{'id':r.id,'offer_title':r.offer_title,'offer_desc':r.offer_desc,'offer_place_id':r.offer_place_id,'offer_validity':r.offer_validity,'offer_img_url':getimage(r.icon_image_id)}for r in rows])
+   return json.dumps([{'id':r.id,'offer_title':r.offer_title,'offer_desc':r.offer_desc,'offer_place_id':r.offer_place_id,'offer_validity':r.offer_validity_ends,'offer_img_url':getimage(r.icon_image_id)}for r in rows])
 
 def index():
     """
